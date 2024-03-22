@@ -26,6 +26,7 @@ prop.set_size(16)
 prop.set_family('SimHei')
 
 """https://stackoverflow.com/questions/65493638/glyph-23130-missing-from-current-font."""
+plt.style.use('ggplot')
 plt.rcParams['font.sans-serif'] = ['SimHei']  # show Chinese label
 plt.rcParams['axes.unicode_minus'] = False    # these two lines need to be set manually
 
@@ -222,7 +223,7 @@ def plot_prediction(Y_train, Y_train_pred, Y_test, Y_test_pred, Y_min, Y_max, ti
     plt.plot(ideal, fitted, 'b', label='fitted')
 
     plt.text(0.10, 0.08, 'Training: MAE = %.4f' % mae_train + ', RMSE = %.4f' % rmse_train + ', $R^2$ = %.4f' % r2_train + ', $r_c$ = %.4f' % np.float64(r_train), transform=plt.gca().transAxes)
-    plt.text(0.10, 0.04, ' Testing: MAE = %.4f' % mae_test  + ', RMSE = %.4f' % rmse_test  + ', $R^2$ = %.4f' % r2_test  + ', $r_p$ = %.4f' % np.float64(r_test ), transform=plt.gca().transAxes)
+    plt.text(0.10, 0.04, ' Testing: MAE = %.4f' % mae_test  + ', RMSE = %.4f' % rmse_test  + ', $Q^2$ = %.4f' % r2_test  + ', $r_p$ = %.4f' % np.float64(r_test ), transform=plt.gca().transAxes)
 
     plt.xlabel( 'Measured Value')
     plt.ylabel('Predicted Value')
@@ -230,7 +231,7 @@ def plot_prediction(Y_train, Y_train_pred, Y_test, Y_test_pred, Y_min, Y_max, ti
     plt.legend(loc='upper left')
     plt.title(title, fontproperties=prop)
 
-    if save: plt.savefig(save)
+    if save: plt.savefig('figure/%s' % save)
     if plot: plt.show()
     if True: plt.close()
 
@@ -307,7 +308,7 @@ def plot_prediction_pls_and_pcr(Y_train, Y_train_pred_pls, Y_train_pred_pcr, Y_t
     axis.plot(ideal, fitted_pls, 'b', label='fitted')
 
     axis.text(0.10, 0.08, 'Training: MAE = %.4f' % mae_train_pls + ', RMSE = %.4f' % rmse_train_pls + ', $R^2$ = %.4f' % r2_train_pls + ', $r_c$ = %.4f' % np.float64(r_train_pls), transform=axis.transAxes)
-    axis.text(0.10, 0.04, ' Testing: MAE = %.4f' % mae_test_pls  + ', RMSE = %.4f' % rmse_test_pls  + ', $R^2$ = %.4f' % r2_test_pls  + ', $r_p$ = %.4f' % np.float64(r_test_pls ), transform=axis.transAxes)
+    axis.text(0.10, 0.04, ' Testing: MAE = %.4f' % mae_test_pls  + ', RMSE = %.4f' % rmse_test_pls  + ', $Q^2$ = %.4f' % r2_test_pls  + ', $r_p$ = %.4f' % np.float64(r_test_pls ), transform=axis.transAxes)
 
     axis.set_xlabel( 'Measured Value')
     axis.set_ylabel('Predicted Value')
@@ -322,7 +323,7 @@ def plot_prediction_pls_and_pcr(Y_train, Y_train_pred_pls, Y_train_pred_pcr, Y_t
     axis.plot(ideal, fitted_pcr, 'b', label='fitted')
 
     axis.text(0.10, 0.08, 'Training: MAE = %.4f' % mae_train_pcr + ', RMSE = %.4f' % rmse_train_pcr + ', $R^2$ = %.4f' % r2_train_pcr + ', $r_c$ = %.4f' % np.float64(r_train_pcr), transform=axis.transAxes)
-    axis.text(0.10, 0.04, ' Testing: MAE = %.4f' % mae_test_pcr  + ', RMSE = %.4f' % rmse_test_pcr  + ', $R^2$ = %.4f' % r2_test_pcr  + ', $r_p$ = %.4f' % np.float64(r_test_pcr ), transform=axis.transAxes)
+    axis.text(0.10, 0.04, ' Testing: MAE = %.4f' % mae_test_pcr  + ', RMSE = %.4f' % rmse_test_pcr  + ', $Q^2$ = %.4f' % r2_test_pcr  + ', $r_p$ = %.4f' % np.float64(r_test_pcr ), transform=axis.transAxes)
 
     axis.set_xlabel( 'Measured Value')
     axis.set_ylabel('Predicted Value')
@@ -332,7 +333,7 @@ def plot_prediction_pls_and_pcr(Y_train, Y_train_pred_pls, Y_train_pred_pcr, Y_t
     axes[0, 0].set_title('%s PLS Model, n_components = %d' % (title, pls_n_components), fontproperties=prop)
     axes[0, 1].set_title('%s PCR Model, n_components = %d' % (title, pcr_n_components), fontproperties=prop)
 
-    if save: plt.savefig(save)
+    if save: plt.savefig('figure/%s' % save)
     if plot: plt.show()
     if True: plt.close()
 
@@ -412,7 +413,7 @@ def PLS(X_train, X_test, Y_train, return_coef, return_pred):
     model.fit(X_train, Y_train)
 
     Y_train_pred = model.predict(X_train).squeeze()
-    Y_test_pred  = model.predict(X_test ).squeeze()
+    Y_test_pred  = model.predict(X_test) .squeeze()
 
     return model.coef_ if return_coef else (Y_train_pred, Y_test_pred) if return_pred else (model, n_components)
 
@@ -438,13 +439,13 @@ def PCR(X_train, X_test, Y_train, return_coef, return_pred):
     pca.fit(X_train)
 
     T_train = pca.transform(X_train)
-    T_test  = pca.transform(X_test )
+    T_test  = pca.transform(X_test)
 
     model = LinearRegression()
     model.fit(T_train, Y_train)
 
     Y_train_pred = model.predict(T_train).squeeze()
-    Y_test_pred  = model.predict(T_test ).squeeze()
+    Y_test_pred  = model.predict(T_test) .squeeze()
 
     return model.coef_ if return_coef else (Y_train_pred, Y_test_pred) if return_pred else (model, n_components)
 
@@ -520,7 +521,7 @@ def SPA(X, mean_center=True, title='', save=None, plot=False):
     plt.ylabel('Accumulated SPA Norms')
     plt.title('%s SPA Norms' % title, fontproperties=prop)
 
-    if save: plt.savefig(save)
+    if save: plt.savefig('figure/%s' % save)
     if plot: plt.show()
     if True: plt.close()
 
@@ -584,7 +585,7 @@ def UVE(X, Y, standardize=True, title='', save=None, plot=False):
     plt.ylabel('UVE Coefficients / Stability')
     plt.title('%s UVE Coefficients' % title, fontproperties=prop)
 
-    if save: plt.savefig(save)
+    if save: plt.savefig('figure/%s' % save)
     if plot: plt.show()
     if True: plt.close()
 

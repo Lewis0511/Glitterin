@@ -29,8 +29,8 @@ def iPPG():
     :return: Y, Y_pred.
     :raise: None.
     """
-    data_0 = pd.read_excel('脉动时域光谱响应值.xlsx', 0)
-    data_1 = pd.read_excel('脉动时域光谱响应值.xlsx', 1)
+    data_0 = pd.read_excel('data/脉动时域光谱响应值.xlsx', 0)
+    data_1 = pd.read_excel('data/脉动时域光谱响应值.xlsx', 1)
 
     T = data_0.iloc[:, 0 ].astype(np.float64).to_numpy()
     X = data_0.iloc[:, 1:].astype(np.float64).to_numpy().T
@@ -75,7 +75,7 @@ def EEMD(s, t, save=None, plot=False):
     plt.xlabel('Time / s')
     plt.title('图 4-10 iPPG原始信号图.\nFigure 4-10 iPPG Raw Signal.', fontproperties=prop)
 
-    if save: plt.savefig('iPPG_raw_signal.png')
+    if save: plt.savefig('figure/%s' % 'iPPG_raw_signal')
     if plot: plt.show()
     if True: plt.close()
 
@@ -138,7 +138,7 @@ def EEMD(s, t, save=None, plot=False):
 
     plt.tight_layout()
 
-    if save: plt.savefig('EEMD_IMFs.png')
+    if save: plt.savefig('figure/%s' % 'EEMD_IMFs')
     if plot: plt.show()
     if True: plt.close()
 
@@ -169,7 +169,7 @@ def bland_altman_plot(x, save=None, plot=False):
 
     plt.title('Bland-Altman Plot')
 
-    if save: plt.savefig(save)
+    if save: plt.savefig('figure/%s' % save)
     if plot: plt.show()
     if True: plt.close()
 

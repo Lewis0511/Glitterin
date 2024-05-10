@@ -23,7 +23,7 @@ from sklearn.model_selection     import cross_val_predict
 
 prop = font_manager.FontProperties()
 prop.set_size(16)
-prop.set_family('SimHei')
+prop.set_family(['DejaVu Sans', 'SimHei'])
 
 """https://stackoverflow.com/questions/65493638/glyph-23130-missing-from-current-font."""
 plt.style.use('ggplot')
@@ -42,8 +42,8 @@ wl_1768: [1240, 2160], len = 20, labels for ticks
 wl_0884: [ 866, 2530], len = 20, labels for ticks
 """
 
-WL_0884 = pd.read_excel('../wl_0884.xlsx', 0, header=None).iloc[:, :].to_numpy().astype(np.float64)  # [1240, 1700] nm
-WL_1899 = pd.read_excel('../wl_1899.xlsx', 1, header=None).iloc[:, 3].to_numpy().astype(np.float64)  # [ 866, 2530] nm
+WL_0884 = pd.read_excel('wl_0884.xlsx', 0, header=None).iloc[:, :].to_numpy().astype(np.float64)  # [1240, 1700] nm
+WL_1899 = pd.read_excel('wl_1899.xlsx', 1, header=None).iloc[:, 3].to_numpy().astype(np.float64)  # [ 866, 2530] nm
 WL_0884 = WL_0884.squeeze()
 WL_1768 = [WL - WL_0884[0] + WL_0884[-1] for WL in WL_0884]
 
@@ -231,7 +231,7 @@ def plot_prediction(Y_train, Y_train_pred, Y_test, Y_test_pred, Y_min, Y_max, ti
     plt.legend(loc='upper left')
     plt.title(title, fontproperties=prop)
 
-    if save: plt.savefig('figure/%s' % save)
+    if save: plt.savefig(save)
     if plot: plt.show()
     if True: plt.close()
 
@@ -239,7 +239,7 @@ def plot_prediction(Y_train, Y_train_pred, Y_test, Y_test_pred, Y_min, Y_max, ti
 
 
 def plot_prediction_pls_and_pcr(Y_train, Y_train_pred_pls, Y_train_pred_pcr, Y_test, Y_test_pred_pls, Y_test_pred_pcr,
-                                Y_min, Y_max, pls_n_components, pcr_n_components, title='', save=None, plot=False):
+                                Y_min, Y_max, title='', save=None, plot=False):
     """
     Plot PLS and PCR Predictions.
 
@@ -251,8 +251,6 @@ def plot_prediction_pls_and_pcr(Y_train, Y_train_pred_pls, Y_train_pred_pcr, Y_t
     :param Y_test_pred_pcr: TODO.
     :param Y_min: TODO.
     :param Y_max: TODO.
-    :param pls_n_components: pls_n_components.
-    :param pcr_n_components: pcr_n_components.
     :param title: Title of the plots. Default an empty string.
     :param save: Filename to save. Default None.
     :param plot: Plot if True. Default False.
@@ -330,12 +328,11 @@ def plot_prediction_pls_and_pcr(Y_train, Y_train_pred_pls, Y_train_pred_pcr, Y_t
 
     axes[0, 0].legend()
     axes[0, 1].legend()
-    axes[0, 0].set_title('%s PLS Model, n_components = %d' % (title, pls_n_components), fontproperties=prop)
-    axes[0, 1].set_title('%s PCR Model, n_components = %d' % (title, pcr_n_components), fontproperties=prop)
 
-    if save: plt.savefig('figure/%s' % save)
-    if plot: plt.show()
-    if True: plt.close()
+    if title: plt.suptitle(title, fontproperties=prop)
+    if save : plt.savefig(save)
+    if plot : plt.show()
+    if True : plt.close()
 
     return mae_train_pls, mae_test_pls, mse_train_pls, mse_test_pls, rmse_train_pls, rmse_test_pls, r2_train_pls, r2_test_pls, r_train_pls, r_test_pls, \
            mae_train_pcr, mae_test_pcr, mse_train_pcr, mse_test_pcr, rmse_train_pcr, rmse_test_pcr, r2_train_pcr, r2_test_pcr, r_train_pcr, r_test_pcr

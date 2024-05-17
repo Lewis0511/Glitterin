@@ -1,7 +1,7 @@
 """
 main.py
 Author: Ziyang Liu @ Glitterin
-Updated 2024.05.10
+Updated 2024.05.17
 """
 import itertools
 import utils
@@ -27,30 +27,32 @@ ticks_0884 = [int(wl) for wl in wl_0884[np.concatenate([np.arange(0,  883,  50),
 ticks_1899 = [int(wl) for wl in wl_1899[np.concatenate([np.arange(0, 1899, 100), [1898]])]]
 
 
-def plot_correlation(data, name, names):
+def plot_correlation(label, name, data, names, labels):  # TODO: change variable 'label' to a better name; add docstring
 
-    X0, X1 = data[name][names[0]], data[name][names[1]]
-    Y0, Y1 = data[name][names[2]], data[name][names[3]]
+    X0, X1 = np.array(data[name][names[0]]), np.array(data[name][names[1]])
+    Y0, Y1 = np.array(data[name][names[2]]), np.array(data[name][names[3]])
 
     if len(Y0.shape) == 1: Y0 = np.expand_dims(Y0, -1)
     if len(Y1.shape) == 1: Y1 = np.expand_dims(Y1, -1)
 
     K = X0.shape[1]
     M = Y0.shape[1]
+    wl = {324: wl_0324, 884: wl_0884, 1899: wl_1899}[K]
+    ticks = {324: ticks_0324, 884: ticks_0884, 1899: ticks_1899}[K]
 
     with np.errstate(invalid='ignore'):
         corr0 = np.array([np.corrcoef(X0.T[xi], Y0.T[yi])[0, 1] for xi, yi in zip(range(K), range(M) if M != 1 else [0] * K)])
         corr1 = np.array([np.corrcoef(X1.T[xi], Y1.T[yi])[0, 1] for xi, yi in zip(range(K), range(M) if M != 1 else [0] * K)])
 
     plt.figure(figsize=(24, 8))
-    plt.plot(wl_0324 if K == 324 else wl_0884, corr0, label='with background')
-    plt.plot(wl_0324 if K == 324 else wl_0884, corr1, label='  no background')
-    plt.xticks(ticks_0324 if K == 324 else ticks_0884)
+    plt.plot(wl, corr0, label=labels[0])
+    plt.plot(wl, corr1, label=labels[1])
+    plt.xticks(ticks)
     plt.xlabel('PD Channels' if K == 324 else 'Wavelength (nm)')
     plt.ylabel('Correlation')
     plt.legend(loc='upper right')
-    plt.title('%s: Correlation between %s and %s' % (name, names[0], names[2]))
-    plt.savefig('lactate/figure/%s_correlation_%s_%s' % (name, names[0], names[2]))
+    plt.title('%s %s: correlation between %s and %s' % (label, name, names[0], names[2]))
+    plt.savefig('%s/figure/%s_correlation_%s_%s' % (label, name, names[0], names[2]))
     plt.close()
 
     return
@@ -65,10 +67,41 @@ def glucose(file_names, verbose=False):
     for file_name in file_names:
 
         df = pd.read_excel('glucose/data/%s.xlsx' % file_name).to_numpy().astype(np.float64)
-        for sample in df: data[file_name][sample[0]].append(sample[1:])
-        if verbose: print('file_name = %s, data.shape = (%2d, %2d, %4d)' % (file_name, len(data[file_name]), len(data[file_name][0]), len(data[file_name][0][0])))
+        for sample in df:
+            data[file_name[5:]][file_name[:4] + '_glucose'].append(sample[0])
+            data[file_name[5:]][file_name[:4] + '_spectra'].append(sample[1:])
+
+    if verbose:
+        for spectra_type in ['absorbance', 'transmittance']:
+            for name, values in data[spectra_type].items(): print('spectra_type: %s, name: %s, values.shape:' % (spectra_type, name.ljust(12)), np.array(values).shape)
 
     if verbose: print('\nFINISH READING GLUCOSE DATA\n')
+
+    plot_correlation('glucose',    'absorbance', data, ['0100_spectra', '2000_spectra', '0100_glucose', '2000_glucose'], ['01.00%', '20.00%'])
+    plot_correlation('glucose', 'transmittance', data, ['0250_spectra', '2000_spectra', '0250_glucose', '2000_glucose'], ['02.50%', '20.00%'])
+
+    for spectra_type, levels in [['absorbance', ['0100', '2000']], ['transmittance', ['0250', '2000']]]:
+
+        if verbose: print('\nSTART ANALYZING GLUCOSE DATA FOR %s\n' % spectra_type.upper())
+
+        # TODO: convert the following part into a function to increase code re-usability
+
+        X0, Y0 = data[spectra_type][levels[0] + '_spectra'], data[spectra_type][levels[0] + '_glucose']
+        X1, Y1 = data[spectra_type][levels[1] + '_spectra'], data[spectra_type][levels[1] + '_glucose']
+
+        X0, Y0 = np.array(X0), np.array(Y0)
+        X1, Y1 = np.array(X1), np.array(Y1)
+
+        pls_model_0 = PLSRegression(n_components)
+        pls_model_1 = PLSRegression(n_components)
+
+        pls_model_0.fit(X0, Y0)
+        pls_model_1.fit(X1, Y1)
+
+        Y_pred_0 = pls_model_0.predict(X0).squeeze()
+        Y_pred_1 = pls_model_1.predict(X1).squeeze()
+
+        if verbose: print('\nFINISH ANALYZING GLUCOSE DATA FOR %s\n' % spectra_type.upper())
 
     return
 
@@ -84,7 +117,7 @@ def lactate(file_names, x_names, y_names, verbose=False):
         name = file_name[7:]
         for sheet_name in range(6): data[name][x_names[sheet_name]] = pd.read_excel('lactate/data/%s.xlsx' % file_name, sheet_name, header=None).to_numpy().astype(np.float64).T
         for column_idx in range(6): data[name][y_names[column_idx]] = pd.read_excel('lactate/data/%s.xlsx' % file_name, 6).iloc[:, column_idx + (name == '胡琮浩')].to_numpy()
-        print('name = %s, data.shape =' % (name + (len(name) == 2) * '　'), [val.shape for val in data[name].values()])
+        if verbose: print('name = %s, data.shape =' % (name + (len(name) == 2) * '　'), [val.shape for val in data[name].values()])
 
     data['周欣雨'][y_names[4]][12] *= 10  # typo correction
 
@@ -92,11 +125,12 @@ def lactate(file_names, x_names, y_names, verbose=False):
 
     for name in data.keys():
 
-        if verbose: print('\nSTART ANALYZING LACTATE DATA FOR %s' % name)
+        if verbose: print('\nSTART ANALYZING LACTATE DATA FOR %s\n' % name)
 
-        for i, j in [[3, 4], [3, 5], [4, 5]]:
-            print('Correlation between %s and %s: %+.4f%s' % (y_names[i], y_names[j],
-                float(np.corrcoef(data[name][y_names[i]], data[name][y_names[j]])[0, 1]), '\n' * ([i, j] == [4, 5])))
+        if verbose:
+            for i, j in [[3, 4], [3, 5], [4, 5]]:
+                print('Correlation between %s and %s: %+.4f%s' % (y_names[i], y_names[j],
+                    float(np.corrcoef(data[name][y_names[i]], data[name][y_names[j]])[0, 1]), '\n' * ([i, j] == [4, 5])))
 
         x_names.append('pd_sample_no_background')
         x_names.append('pd_source_no_background')
@@ -104,18 +138,20 @@ def lactate(file_names, x_names, y_names, verbose=False):
         data[name][x_names[7]] = data[name]['pd_sample'] - data[name]['pd_background']
         data[name][x_names[8]] = data[name]['pd_source'] - data[name]['pd_background']
 
-        plot_correlation(data, name, [x_names[i] for i in [0, 0, 1, 7]])
-        plot_correlation(data, name, [x_names[i] for i in [0, 0, 2, 8]])
-        plot_correlation(data, name, [x_names[i] for i in [1, 7, 2, 8]])
-        plot_correlation(data, name, [x_names[i] for i in [4, 3, 5, 5]])
+        labels = ['with_background', '  no_background']
 
-        plot_correlation(data, name, [x_names[1], x_names[7], y_names[3], y_names[3]])
-        plot_correlation(data, name, [x_names[1], x_names[7], y_names[4], y_names[4]])
-        plot_correlation(data, name, [x_names[1], x_names[7], y_names[5], y_names[5]])
+        plot_correlation('lactate', name, data, [x_names[i] for i in [0, 0, 1, 7]], labels)
+        plot_correlation('lactate', name, data, [x_names[i] for i in [0, 0, 2, 8]], labels)
+        plot_correlation('lactate', name, data, [x_names[i] for i in [1, 7, 2, 8]], labels)
+        plot_correlation('lactate', name, data, [x_names[i] for i in [4, 3, 5, 5]], labels)
 
-        plot_correlation(data, name, [x_names[4], x_names[3], y_names[3], y_names[3]])
-        plot_correlation(data, name, [x_names[4], x_names[3], y_names[4], y_names[4]])
-        plot_correlation(data, name, [x_names[4], x_names[3], y_names[5], y_names[5]])
+        plot_correlation('lactate', name, data, [x_names[1], x_names[7], y_names[3], y_names[3]], labels)
+        plot_correlation('lactate', name, data, [x_names[1], x_names[7], y_names[4], y_names[4]], labels)
+        plot_correlation('lactate', name, data, [x_names[1], x_names[7], y_names[5], y_names[5]], labels)
+
+        plot_correlation('lactate', name, data, [x_names[4], x_names[3], y_names[3], y_names[3]], labels)
+        plot_correlation('lactate', name, data, [x_names[4], x_names[3], y_names[4], y_names[4]], labels)
+        plot_correlation('lactate', name, data, [x_names[4], x_names[3], y_names[5], y_names[5]], labels)
 
         Y = pls_model_1 = None  # to shut up the inspections
 
@@ -125,20 +161,20 @@ def lactate(file_names, x_names, y_names, verbose=False):
             X1 = data[name][x_names[xi1]]
             Y  = data[name][y_names[yi]]
 
-            pls_model_0 = PLSRegression(n_components, scale=False)
-            pls_model_1 = PLSRegression(n_components, scale=False)
+            pls_model_0 = PLSRegression(n_components)
+            pls_model_1 = PLSRegression(n_components)
 
             pls_model_0.fit(X0, Y)
             pls_model_1.fit(X1, Y)
 
             Y_pred_0 = pls_model_0.predict(X0).squeeze()
-            Y_pred_1 = pls_model_1.predict(X0).squeeze()
+            Y_pred_1 = pls_model_1.predict(X1).squeeze()
 
             utils.plot_prediction_pls_and_pcr(Y, Y_pred_0, Y_pred_1, Y, Y_pred_0, Y_pred_1, None, None,
                 '%s: %s vs. %s PLS Model, n_components = %d, with / no background' % (name, x_names[xi0], y_names[yi], n_components),
                 'lactate/figure/%s_pls_pls_predictions_%s_%s' % (name, x_names[xi0], y_names[yi]), False)
 
-        pls_model = pls_model_1  # pls_model is that for recon_sample_no_background vs. lactic_acid for now
+        pls_model = pls_model_1  # pls_model is that for recon_sample_no_background versus lactic_acid for now
 
         """ FIG 0. PLS COEFFICIENTS """
         plt.figure(figsize=(24, 8))
@@ -189,7 +225,7 @@ def lactate(file_names, x_names, y_names, verbose=False):
         plt.savefig('lactate/figure/%s_fig_03' % name)
         plt.close()
 
-        if verbose: print('\nFINISH ANALYZING LACTATE DATA FOR %s' % name)
+        if verbose: print('\nFINISH ANALYZING LACTATE DATA FOR %s\n' % name)
 
     return
 
@@ -204,7 +240,8 @@ def plastic(file_names, verbose=False):
 
         df = pd.read_excel('plastic/data/%s.xlsx' % file_name).to_numpy()
         for sample in df: data[sample[0]].append(sample[1:].astype(np.float64))
-        for key, val in data.items(): print('name = %4s, data.shape = (%d, %d)' % (key, len(val), len(val[0])))
+        if verbose:
+            for key, val in data.items(): print('name = %4s, data.shape = (%d, %d)' % (key, len(val), len(val[0])))
 
     if verbose: print('\nFINISH READING PLASTIC DATA\n')
 

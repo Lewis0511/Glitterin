@@ -1,7 +1,7 @@
 """
 main.py
 Author: Ziyang Liu @ Glitterin
-Updated 2024.05.17
+Updated 2024.05.24
 """
 import itertools
 import utils
@@ -58,6 +58,66 @@ def plot_correlation(label, name, data, names, labels):  # TODO: change variable
     return
 
 
+def plot_figure(label, Y, pls_model, name, fig_num):
+
+    """ FIG 0. PLS COEFFICIENTS """
+    if fig_num == 0:
+        plt.figure(figsize=(24, 8))
+        plt.plot(wl_0884, pls_model.coef_.squeeze())
+        plt.xticks(ticks_0884)
+        plt.xlabel('Wavelength (nm)')
+        plt.ylabel('PLS Coefficients')
+        plt.title('%s Fig 0. The PLS Coefficients.' % name)
+        plt.savefig('%s/figure/%s_fig_00' % (label, name))
+        plt.close()
+
+    """ FIG 1. PLS X LOADINGS P1 AND P2 """
+    if fig_num == 1:
+        plt.figure(figsize=(24, 8))
+        plt.plot(wl_0884, pls_model.x_loadings_[:, 0], label='$\mathbf{p}_1$')
+        plt.plot(wl_0884, pls_model.x_loadings_[:, 1], label='$\mathbf{p}_2$')
+        plt.xticks(ticks_0884)
+        plt.xlabel('Wavelength (nm)')
+        plt.ylabel('$x$-loadings')
+        plt.legend()
+        plt.title('%s Fig 1. The PLS $x$-loadings $\mathbf{p}_1$ and $\mathbf{p}_2$.' % name)
+        plt.savefig('%s/figure/%s_fig_01' % (label, name))
+        plt.close()
+
+    min_score = max(min(pls_model.x_scores_[:, 0]), min(pls_model.y_scores_[:, 0]))
+    max_score = min(max(pls_model.x_scores_[:, 0]), max(pls_model.y_scores_[:, 0]))
+    ideal = np.linspace(min_score, max_score, 2)
+
+    """ FIG 2. PLS X SCORE T1 AND Y SCORE U1 """
+    if fig_num == 2:
+        plt.figure(figsize=(8, 8))
+        plt.plot(ideal, ideal, alpha=0.5, color='k')
+        plt.scatter(pls_model.x_scores_[:, 0], pls_model.y_scores_[:, 0], 4, (max(Y) - Y) / (max(Y) - min(Y)), cmap='seismic')
+        plt.axhline(0, alpha=0.5, color='k')
+        plt.axvline(0, alpha=0.5, color='k')
+        plt.xlabel('$\mathbf{t}_1$')
+        plt.ylabel('$\mathbf{u}_1$')
+        plt.title('%s Fig 2. The PLS scores $\mathbf{t}_1$ and $\mathbf{u}_1$.' % name)
+        plt.savefig('%s/figure/%s_fig_02' % (label, name))
+        plt.close()
+
+    """ FIG 3. PLS X SCORE T1 AND X SCORE T2 """
+    if fig_num == 3:
+        plt.figure(figsize=(8, 8))
+        plt.scatter(pls_model.x_scores_[:, 0], pls_model.x_scores_[:, 1], 4, (max(Y) - Y) / (max(Y) - min(Y)), cmap='seismic')
+        plt.axhline(0, alpha=0.5, color='k')
+        plt.axvline(0, alpha=0.5, color='k')
+        plt.xlabel('$\mathbf{t}_1$')
+        plt.ylabel('$\mathbf{t}_2$')
+        plt.title('%s Fig 3. The PLS scores $\mathbf{t}_1$ and $\mathbf{t}_2$.' % name)
+        plt.savefig('%s/figure/%s_fig_03' % (label, name))
+        plt.close()
+
+    # TODO: KEEP ADDING FIGURES MY BRO
+
+    return
+
+
 def glucose(file_names, verbose=False):
 
     data = defaultdict(lambda: defaultdict(list))
@@ -98,8 +158,8 @@ def glucose(file_names, verbose=False):
         pls_model_0.fit(X0, Y0)
         pls_model_1.fit(X1, Y1)
 
-        Y_pred_0 = pls_model_0.predict(X0).squeeze()
-        Y_pred_1 = pls_model_1.predict(X1).squeeze()
+        # Y_pred_0 = pls_model_0.predict(X0).squeeze()
+        # Y_pred_1 = pls_model_1.predict(X1).squeeze()
 
         if verbose: print('\nFINISH ANALYZING GLUCOSE DATA FOR %s\n' % spectra_type.upper())
 
@@ -171,61 +231,66 @@ def lactate(file_names, x_names, y_names, verbose=False):
             Y_pred_1 = pls_model_1.predict(X1).squeeze()
 
             utils.plot_prediction_pls_and_pcr(Y, Y_pred_0, Y_pred_1, Y, Y_pred_0, Y_pred_1, None, None,
-                '%s: %s vs. %s PLS Model, n_components = %d, with / no background' % (name, x_names[xi0], y_names[yi], n_components),
-                'lactate/figure/%s_pls_pls_predictions_%s_%s' % (name, x_names[xi0], y_names[yi]), False)
+                '%s: %s vs. %s PLS model, n_components = %d, with / no background' % (name, x_names[xi0], y_names[yi], n_components),
+                'lactate/figure/%s_pls_predictions_%s_%s' % (name, x_names[xi0], y_names[yi]), False)
 
         pls_model = pls_model_1  # pls_model is that for recon_sample_no_background versus lactic_acid for now
 
-        """ FIG 0. PLS COEFFICIENTS """
-        plt.figure(figsize=(24, 8))
-        plt.plot(wl_0884, pls_model.coef_.squeeze())
-        plt.xticks(ticks_0884)
-        plt.xlabel('Wavelength (nm)')
-        plt.ylabel('PLS Coefficients')
-        plt.title('%s Fig 0. The PLS Coefficients.' % name)
-        plt.savefig('lactate/figure/%s_fig_00' % name)
-        plt.close()
-
-        """ FIG 1. PLS X LOADINGS P1 AND P2 """
-        plt.figure(figsize=(24, 8))
-        plt.plot(wl_0884, pls_model.x_loadings_[:, 0], label='$\mathbf{p}_1$')
-        plt.plot(wl_0884, pls_model.x_loadings_[:, 1], label='$\mathbf{p}_2$')
-        plt.xticks(ticks_0884)
-        plt.xlabel('Wavelength (nm)')
-        plt.ylabel('$x$-loadings')
-        plt.legend()
-        plt.title('%s Fig 1. The PLS $x$-loadings $\mathbf{p}_1$ and $\mathbf{p}_2$.' % name)
-        plt.savefig('lactate/figure/%s_fig_01' % name)
-        plt.close()
-
-        min_score = max(min(pls_model.x_scores_[:, 0]), min(pls_model.y_scores_[:, 0]))
-        max_score = min(max(pls_model.x_scores_[:, 0]), max(pls_model.y_scores_[:, 0]))
-        ideal = np.linspace(min_score, max_score, 2)
-
-        """ FIG 2. PLS X SCORE T1 AND Y SCORE U1 """
-        plt.figure(figsize=(8, 8))
-        plt.plot(ideal, ideal, alpha=0.5, color='k')
-        plt.scatter(pls_model.x_scores_[:, 0], pls_model.y_scores_[:, 0], 4, (max(Y) - Y) / (max(Y) - min(Y)), cmap='seismic')
-        plt.axhline(0, alpha=0.5, color='k')
-        plt.axvline(0, alpha=0.5, color='k')
-        plt.xlabel('$\mathbf{t}_1$')
-        plt.ylabel('$\mathbf{u}_1$')
-        plt.title('%s Fig 2. The PLS scores $\mathbf{t}_1$ and $\mathbf{u}_1$.' % name)
-        plt.savefig('lactate/figure/%s_fig_02' % name)
-        plt.close()
-
-        """ FIG 3. PLS X SCORE T1 AND X SCORE T2 """
-        plt.figure(figsize=(8, 8))
-        plt.scatter(pls_model.x_scores_[:, 0], pls_model.x_scores_[:, 1], 4, (max(Y) - Y) / (max(Y) - min(Y)), cmap='seismic')
-        plt.axhline(0, alpha=0.5, color='k')
-        plt.axvline(0, alpha=0.5, color='k')
-        plt.xlabel('$\mathbf{t}_1$')
-        plt.ylabel('$\mathbf{t}_2$')
-        plt.title('%s Fig 3. The PLS scores $\mathbf{t}_1$ and $\mathbf{t}_2$.' % name)
-        plt.savefig('lactate/figure/%s_fig_03' % name)
-        plt.close()
+        for fig_num in range(4): plot_figure('lactate', Y, pls_model, name, fig_num)
 
         if verbose: print('\nFINISH ANALYZING LACTATE DATA FOR %s\n' % name)
+
+    return
+
+
+def moisture(file_names, verbose=False):
+
+    data = defaultdict(lambda: defaultdict())
+
+    if verbose: print('\nSTART READING MOISTURE DATA\n')
+
+    for file_name in file_names:
+
+        df0 = pd.read_excel('moisture/data/%s.xlsx' % file_name, 0, header=None)
+        df1 = pd.read_excel('moisture/data/%s.xlsx' % file_name, 1, header=None)
+        df2 = pd.read_excel('moisture/data/%s.xlsx' % file_name, 2)
+
+        data[file_name]['sample'] = df0.to_numpy().astype(np.float64)
+        data[file_name]['source'] = df1.to_numpy().astype(np.float64)
+        data[file_name]['label'] = df2.iloc[:, 1].to_numpy()
+
+        if verbose: print(file_name, [data[file_name][name].shape for name in ['sample', 'source', 'label']])
+
+    if verbose: print('\nFINISH READING MOISTURE DATA\n')
+
+    for file_name in file_names:
+
+        if verbose: print('\nSTART ANALYZING MOISTURE DATA FOR %s' % file_name)
+
+        plot_correlation('moisture', file_name, data, ['sample', 'source', 'label', 'label'], ['sample', 'source'])
+
+        Y = data[file_name]['label']
+
+        for X0, X1 in [[data[file_name]['sample'], data[file_name]['source']]]:
+
+            pls_model_0 = PLSRegression(n_components)
+            pls_model_1 = PLSRegression(n_components)
+
+            pls_model_0.fit(X0, Y)
+            pls_model_1.fit(X1, Y)
+
+            Y_pred_0 = pls_model_0.predict(X0).squeeze()
+            Y_pred_1 = pls_model_1.predict(X1).squeeze()
+
+            utils.plot_prediction_pls_and_pcr(Y, Y_pred_0, Y_pred_1, Y, Y_pred_0, Y_pred_1, None, None,
+                '%s: sample / source vs. skin moisture PLS model' % file_name,
+                'moisture/figure/%s_pls_predictions_sample_source' % file_name, False)
+
+        pls_model = pls_model_0  # pls_model is that for sample versus skin moisture for now
+
+        for fig_num in range(4): plot_figure('moisture', Y, pls_model, file_name, fig_num)
+
+        if verbose: print('\nFINISH ANALYZING MOISTURE DATA FOR %s' % file_name)
 
     return
 
@@ -270,6 +335,10 @@ def main(prop_size=16, prop_family=('DejaVu Sans', 'SimHei')):
     x_names = ['pd_background', 'pd_sample', 'pd_source', 'recon_sample_no_background', 'recon_sample', 'recon_source', 'labels']
     y_names = ['id', 'time', 'heart_rate_after_exercise', ' heart_rate', 'blood_sugar', 'lactic_acid']
     lactate(file_names, x_names, y_names, verbose=True)
+
+    """ MOISTURE """
+    file_names = ['皮肤水分-样机']
+    moisture(file_names, verbose=True)
 
     """ PLASTIC """
     file_names = ['plastic']

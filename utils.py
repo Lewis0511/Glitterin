@@ -1,16 +1,20 @@
 """
 utils.py
-Author: Ziyang Liu @ Glitterin.
-Initial Commit. 2024.03.15.
+Author: Ziyang Liu @ Glitterin
+Updated 2024.05.31
 """
+
 import datetime
+import PyEMD
 
 import numpy  as np
 import pandas as pd
 import scipy  as sp
 
-from matplotlib import font_manager
-from matplotlib import pyplot as plt
+from matplotlib   import font_manager
+from matplotlib   import pyplot as plt
+from matplotlib   import ticker
+from scipy.signal import savgol_filter
 
 from sklearn.cross_decomposition import PLSRegression
 from sklearn.decomposition       import PCA
@@ -587,3 +591,72 @@ def UVE(X, Y, standardize=True, title='', save=None, plot=False):
     if True: plt.close()
 
     return coefs
+
+
+def EEMD(X, Y, name, save=None):
+    """
+    多光谱 iPPG 信号获取与去噪算法
+    Multi-spectral iPPG signal acquisition and denoising algorithm
+
+    :param X: Original signal(s)
+    :param Y: Measured / Reference label(s)
+    :param name: Sample name / number (mainly for file saving purposes)
+    :param save: Filename to save. Default None (do not save)
+    :return: Processed signal(s)
+    """
+    N = X.shape[0]
+    K = X.shape[1]
+
+    colors = plt.get_cmap('autumn', N)
+    x_ticks = range(0, K + 1)
+    x_labels = ['%.2f' % (x_tick / 20) for x_tick in x_ticks[::10]]
+    WLs = {0: '1100', 1: '1150', 2: '1200', 3: '1250', 4: '1300'}
+
+    plt.figure(figsize=(24, 24))
+    for i in range(N): plt.plot(x_ticks[1:], X[i] + (N - i - 1) * 600, color=colors(i), label='%s nm' % WLs[i])
+    plt.xticks(x_ticks[::10], x_labels)
+    plt.xlabel('Time (s)')
+    plt.ylabel('相对光谱响应值')
+    plt.legend(loc='upper right')
+    plt.title('Sample %s: Time elapsed = %.2fs, heart rate = %d/min, SpO$_2$ = %d%%' % (name, K / 20, Y[0], Y[1]))
+    if save: plt.savefig('time/figure/original_signals_%s' % name)
+    if True: plt.close()
+
+    """
+    集合经验模态分解
+    Ensemble Empirical Mode Decomposition (EEMD)
+    https://pyemd.readthedocs.io/en/latest/examples.html
+    """
+    for i in range(N):
+
+        X[i] = savgol_filter(X[i], 15, 5)
+
+        eemd = PyEMD.EEMD()
+        eIMFs = eemd.eemd(X[i])
+        nIMFs = eIMFs.shape[0]
+
+        X[i] = eIMFs[1]
+
+        fig, axs = plt.subplots(nIMFs + 2, 1, figsize=(24, 24))
+
+        for ax in axs: ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%+g'))
+
+        axs[0].plot(X[i])
+        axs[0].locator_params(axis='y', nbins=2)
+        axs[0].set_title('去除高频噪声后的信号', fontproperties=prop, fontsize=24)
+
+        for n in range(nIMFs):
+
+            axs[n + 1].plot(eIMFs[n])
+            axs[n + 1].set_ylabel('IMF %i' % (n + 1))
+            axs[n + 1].locator_params(axis='y', nbins=2)
+
+        axs[-1].plot(X[i] - np.sum(eIMFs, axis=0))
+        axs[-1].set_ylabel('Res')
+        axs[-1].locator_params(axis='y', nbins=2)
+
+        plt.tight_layout()
+        if save: plt.savefig('time/figure/EEMD_IMFs_%s' % name)
+        if True: plt.close()
+
+    return X

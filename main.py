@@ -1,12 +1,14 @@
 """
 main.py
 Author: Ziyang Liu @ Glitterin
-Updated 2024.05.24
+Updated 2024.05.31
 """
+
 import itertools
 import utils
 
 import numpy  as np
+import scipy  as sp
 import pandas as pd
 
 from collections import defaultdict
@@ -313,10 +315,65 @@ def plastic(file_names, verbose=False):
     return
 
 
+def time(file_names, verbose=False):
+
+    data = defaultdict(lambda: defaultdict())
+    WL = {0: '1100', 1: '1150', 2: '1200', 3: '1250', 4: '1300'}
+
+    if verbose: print('\nSTART READING TIME DATA\n')
+
+    for file_name in file_names:
+
+        data[file_name]['labels'] = pd.read_excel('time/data/%s.xlsx' % file_name, 1).to_numpy().astype(np.float64)
+
+        for sheet_name in range(2, 7): data[file_name][WL[sheet_name - 2]] = \
+            pd.read_excel('time/data/%s.xlsx' % file_name, sheet_name).iloc[:, 1::2].dropna().to_numpy().astype(np.float64).T
+
+    if verbose: print('\nFINISH READING TIME DATA\n')
+
+    for file_name in file_names:
+
+        if verbose: print('\nSTART ANALYZING TIME DATA FOR %s.xlsx\n' % file_name)
+
+        Y_ref  = []
+        Y_pred = []
+        N = len(data[file_name]['labels'])
+        T = 10.00
+
+        for i in range(N):
+
+            X = np.array([utils.mean_centering(data[file_name][WL[wl]][i]) for wl in range(5)])
+            Y = data[file_name]['labels'][i]
+            K = len(X[0])
+
+            x_eemd = utils.EEMD(X, Y, '%s_%02d' % (file_name, i))
+            x_fft = sp.fft.fft(x_eemd[0])[: K // 2]
+
+            plt.figure(figsize=(16, 8))
+            plt.plot([t / 60 * T for t in range(K // 2)], np.abs(x_fft), color='blue')
+            plt.xlabel('Frequency (Hz)')
+            plt.ylabel('Normalized Amplitude')
+            plt.title('Sample %02d: Fast Fourier Transform Spectrum of Signal' % i)
+            plt.savefig('time/figure/%s_%02d_fast_fourier_transform' % (file_name, i))
+            plt.close()
+
+            Y_ref .append(Y[0])
+            Y_pred.append(np.argmax(np.abs(x_fft)) * 6.6)
+
+        print('Reference heart rate:', [int(y) for y in Y_ref ])
+        print('Predicted heart rate:', [int(y) for y in Y_pred])
+        utils.plot_prediction(Y_ref, Y_pred, Y_ref, Y_pred, None, None,
+                              '%s Heart Rate' % file_name, 'time/figure/%s_prediction' % file_name, False)
+
+        if verbose: print('\nFINISH ANALYZING TIME DATA FOR %s.xlsx\n' % file_name)
+
+    return
+
+
 """ PLEASE, PLEASE, PLEASE, TRY YOUR BEST TO MAKE TEMPORARY MODIFICATIONS ONLY IN MAIN() """
 
 
-def main(prop_size=16, prop_family=('DejaVu Sans', 'SimHei')):
+def main(GLUCOSE=True, LACTATE=True, MOISTURE=True, PLASTIC=True, TIME=True, prop_size=16, prop_family=('DejaVu Sans', 'SimHei')):
 
     """ https://stackoverflow.com/questions/65493638/glyph-23130-missing-from-current-font """
     plt.style.use('ggplot')
@@ -328,23 +385,27 @@ def main(prop_size=16, prop_family=('DejaVu Sans', 'SimHei')):
 
     """ GLUCOSE """
     file_names = ['0100_absorbance', '2000_absorbance', '0250_transmittance', '2000_transmittance']
-    glucose(file_names, verbose=True)
+    if GLUCOSE: glucose(file_names, verbose=True)
 
     """ LACTATE """
     file_names = ['240424_汪文东', '240428_周欣雨', '240428_杨森', '240506_胡琮浩']
     x_names = ['pd_background', 'pd_sample', 'pd_source', 'recon_sample_no_background', 'recon_sample', 'recon_source', 'labels']
     y_names = ['id', 'time', 'heart_rate_after_exercise', ' heart_rate', 'blood_sugar', 'lactic_acid']
-    lactate(file_names, x_names, y_names, verbose=True)
+    if LACTATE: lactate(file_names, x_names, y_names, verbose=True)
 
     """ MOISTURE """
     file_names = ['皮肤水分-样机']
-    moisture(file_names, verbose=True)
+    if MOISTURE: moisture(file_names, verbose=True)
 
     """ PLASTIC """
     file_names = ['plastic']
-    plastic(file_names, verbose=True)
+    if PLASTIC: plastic(file_names, verbose=True)
+
+    """ TIME """
+    file_names = ['0528']
+    if TIME: time(file_names, verbose=True)
 
     return
 
 
-if __name__ == '__main__': main()
+if __name__ == '__main__': main(True, True, True, True, True)

@@ -593,7 +593,7 @@ def UVE(X, Y, standardize=True, title='', save=None, plot=False):
     return coefs
 
 
-def EEMD(X, Y, name, save=None):
+def EEMD(X, Y, name):
     """
     多光谱 iPPG 信号获取与去噪算法
     Multi-spectral iPPG signal acquisition and denoising algorithm
@@ -601,7 +601,6 @@ def EEMD(X, Y, name, save=None):
     :param X: Original signal(s)
     :param Y: Measured / Reference label(s)
     :param name: Sample name / number (mainly for file saving purposes)
-    :param save: Filename to save. Default None (do not save)
     :return: Processed signal(s)
     """
     N = X.shape[0]
@@ -619,8 +618,8 @@ def EEMD(X, Y, name, save=None):
     plt.ylabel('相对光谱响应值')
     plt.legend(loc='upper right')
     plt.title('Sample %s: Time elapsed = %.2fs, heart rate = %d/min, SpO$_2$ = %d%%' % (name, K / 20, Y[0], Y[1]))
-    if save: plt.savefig('time/figure/original_signals_%s' % name)
-    if True: plt.close()
+    plt.savefig('time/figure/original_signals_%s' % name)
+    plt.close()
 
     """
     集合经验模态分解
@@ -656,7 +655,7 @@ def EEMD(X, Y, name, save=None):
         axs[-1].locator_params(axis='y', nbins=2)
 
         plt.tight_layout()
-        if save: plt.savefig('time/figure/EEMD_IMFs_%s' % name)
-        if True: plt.close()
+        plt.savefig('time/figure/EEMD_IMFs_%s' % name)
+        plt.close()
 
     return X

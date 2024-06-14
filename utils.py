@@ -1,7 +1,7 @@
 """
 utils.py
 Author: Ziyang Liu @ Glitterin
-Updated 2024.05.31
+Updated 2024.06.14
 """
 
 import datetime
@@ -628,7 +628,7 @@ def EEMD(X, Y, name):
     """
     for i in range(N):
 
-        X[i] = savgol_filter(X[i], 15, 5)
+        # X[i] = savgol_filter(X[i], 15, 5)
 
         eemd = PyEMD.EEMD()
         eIMFs = eemd.eemd(X[i])

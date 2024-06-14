@@ -1,7 +1,7 @@
 """
 main.py
 Author: Ziyang Liu @ Glitterin
-Updated 2024.05.31
+Updated 2024.06.14
 """
 
 import itertools
@@ -351,6 +351,7 @@ def time(file_names, verbose=False):
 
             plt.figure(figsize=(16, 8))
             plt.plot([t / 60 * T for t in range(K // 2)], np.abs(x_fft), color='blue')
+            plt.xticks([t / 60 * T for t in range(0, K // 2, 3)])
             plt.xlabel('Frequency (Hz)')
             plt.ylabel('Normalized Amplitude')
             plt.title('Sample %02d: Fast Fourier Transform Spectrum of Signal' % i)

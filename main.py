@@ -1,7 +1,7 @@
 """
 main.py
 Author: Ziyang Liu @ Glitterin
-Updated 2024.06.14
+Updated 2024.06.28
 """
 
 import itertools
@@ -324,10 +324,12 @@ def time(file_names, verbose=False):
 
     for file_name in file_names:
 
-        data[file_name]['labels'] = pd.read_excel('time/data/%s.xlsx' % file_name, 1).to_numpy().astype(np.float64)
+        data[file_name]['labels'] = pd.read_excel('time/data/%s.xlsx' % file_name, '实测值').to_numpy().astype(np.float64)
 
-        for sheet_name in range(2, 7): data[file_name][WL[sheet_name - 2]] = \
-            pd.read_excel('time/data/%s.xlsx' % file_name, sheet_name).iloc[:, 1::2].dropna().to_numpy().astype(np.float64).T
+        for i, sheet_name in enumerate(['1100nm', '1150nm', '1200nm', '1250nm', '1300nm']):
+            data[file_name][WL[i]] = []
+            df = pd.read_excel('time/data/%s.xlsx' % file_name, sheet_name).iloc[:, 1::2].T
+            for row in range(len(df)): data[file_name][WL[i]].append(df.iloc[row, :].dropna().to_numpy().astype(np.float64))
 
     if verbose: print('\nFINISH READING TIME DATA\n')
 
@@ -359,7 +361,7 @@ def time(file_names, verbose=False):
             plt.close()
 
             Y_ref .append(Y[0])
-            Y_pred.append(np.argmax(np.abs(x_fft)) * 6.6)
+            Y_pred.append(np.argmax(np.abs(x_fft)) * 6.0)
 
         print('Reference heart rate:', [int(y) for y in Y_ref ])
         print('Predicted heart rate:', [int(y) for y in Y_pred])
@@ -403,25 +405,10 @@ def main(GLUCOSE=True, LACTATE=True, MOISTURE=True, PLASTIC=True, TIME=True, pro
     if PLASTIC: plastic(file_names, verbose=True)
 
     """ TIME """
-    file_names = ['0528']
+    file_names = ['0528', '指尖0529', '脉搏0529']
     if TIME: time(file_names, verbose=True)
 
     return
 
 
 if __name__ == '__main__': main(True, True, True, True, True)
-
-# Reference heart rate: [ 70,  72,  69,  74,  72,  74,  77,  78,  80,  75, 117,  87, 116, 103,  97, 102,  98, 100,  93, 150]
-# Predicted heart rate: [ 72,  72,  72,  72,  72,  79,  79,  79,  72,  72, 112,  92, 118,  99,  99, 105,  99,  99,  99,  72]
-
-# Reference heart rate: [138, 115, 145, 128, 128, 115, 125,  90,  93,  82,  78,  76,  77,  77,  77,  87,  73,  70,  75,  72]
-# Predicted heart rate: [138, 118,  85, 132, 132, 118, 125,  92,  92,  85,  79,  79,  79,  79,  79,  85,  72,  72,  79,  72]
-
-# Reference heart rate: [ 75,  74,  80,  78,  77,  82,  90,  90,  84, 110,  98, 108, 105,  99,  93,  90, 106, 125, 115, 111]
-# Predicted heart rate: [ 79,  79,  79,  79,  79,  79,  85,  85,  85, 112,  99, 105, 105,  99,  99,  92, 105, 125, 118, 112]
-
-# Reference heart rate: [110, 109, 130, 126, 120, 116,  80,  83,  85,  81,  94,  88,  93,  85, 145, 136, 123, 118, 113, 109]
-# Predicted heart rate: [112, 112, 132, 132, 125, 118,  79,  85,  85,  85,  99,  92,  99,  85, 145, 138, 125, 125, 118, 112]
-
-# Reference heart rate: [125, 121, 112, 109, 108, 102,  83,  77,  87,  82]
-# Predicted heart rate: [125, 125, 112, 112, 112, 105,  85,  85,  92,  85]

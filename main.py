@@ -1,7 +1,7 @@
 """
 main.py
 Author: Ziyang Liu @ Glitterin
-Updated 2024.06.28
+Updated 2024.07.05
 """
 
 import itertools
